@@ -1,7 +1,7 @@
 variable "location" {
   type        = string
   description = "Region de Azure donde se despliega toda la infraestructura"
-  default     = "westeurope"
+  default     = "southcentralus"
 }
 
 variable "public_key_path" {

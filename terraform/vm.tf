@@ -88,15 +88,9 @@ resource "azurerm_linux_virtual_machine" "cp2_vm" {
   }
 
   source_image_reference {
-    publisher = "cognosys"
-    offer     = "centos-8-stream-free"
-    sku       = "centos-8-stream-free"
-    version   = "22.03.28"
-  }
-
-  plan {
-    name      = "centos-8-stream-free"
-    publisher = "cognosys"
-    product   = "centos-8-stream-free"
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
+    version   = "latest"
   }
 }
