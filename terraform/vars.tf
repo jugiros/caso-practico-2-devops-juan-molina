@@ -19,13 +19,13 @@ variable "ssh_user" {
 variable "vm_size" {
   type        = string
   description = "Tamano de la VM Linux para Podman"
-  default     = "Standard_B2s"
+  default     = "Standard_B2s_v2"
 }
 
 variable "aks_node_vm_size" {
   type        = string
   description = "Tamano del nodo worker del cluster AKS"
-  default     = "Standard_B2s"
+  default     = "Standard_B2s_v2"
 }
 
 variable "registry_name" {
