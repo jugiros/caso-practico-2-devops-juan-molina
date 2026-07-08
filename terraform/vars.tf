@@ -24,8 +24,8 @@ variable "vm_size" {
 
 variable "aks_node_vm_size" {
   type        = string
-  description = "Tamano del nodo worker del cluster AKS"
-  default     = "Standard_B2s_v2"
+  description = "Tamano del nodo worker del cluster AKS (familia ARM Bpsv2, unica con cuota disponible para AKS)"
+  default     = "Standard_B2ps_v2"
 }
 
 variable "registry_name" {
