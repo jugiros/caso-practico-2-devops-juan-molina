@@ -4,6 +4,6 @@ __pycache__/
 .terraform/
 *.tfstate
 *.tfstate.backup
-.terraform.lock.hcl
 *.retry
 ansible/group_vars/all.yml
+terraform/tfplan
