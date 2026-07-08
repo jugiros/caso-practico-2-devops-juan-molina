@@ -19,7 +19,7 @@ variable "ssh_user" {
 variable "vm_size" {
   type        = string
   description = "Tamano de la VM Linux para Podman"
-  default     = "Standard_B2s_v2"
+  default     = "Standard_B2ps_v2"
 }
 
 variable "aks_node_vm_size" {
