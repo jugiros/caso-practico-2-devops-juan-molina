@@ -1,7 +1,7 @@
 variable "location" {
   type        = string
   description = "Region de Azure donde se despliega toda la infraestructura"
-  default     = "brazilsouth"
+  default     = "westeurope"
 }
 
 variable "public_key_path" {
@@ -19,13 +19,13 @@ variable "ssh_user" {
 variable "vm_size" {
   type        = string
   description = "Tamano de la VM Linux para Podman"
-  default     = "Standard_D2s_v6"
+  default     = "Standard_B2s"
 }
 
 variable "aks_node_vm_size" {
   type        = string
   description = "Tamano del nodo worker del cluster AKS"
-  default     = "Standard_D2s_v6"
+  default     = "Standard_B2s"
 }
 
 variable "registry_name" {
