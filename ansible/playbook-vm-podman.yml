@@ -1,0 +1,112 @@
+---
+- name: Desplegar App A (Podman + Apache, HTTPS y autenticacion basica)
+  hosts: vm_podman
+  become: true
+  vars:
+    app_dir: /home/azureuser/app-podman
+    image_local: appa-podman:casopractico2
+    image_remote: "{{ acr_login_server }}/appa/webserver-podman:casopractico2"
+
+  tasks:
+    - name: Instalar Podman y dependencias para modulos de Ansible
+      ansible.builtin.apt:
+        name:
+          - podman
+          - python3-cryptography
+          - python3-passlib
+        state: present
+        update_cache: true
+
+    - name: Crear carpetas de la app en la VM
+      ansible.builtin.file:
+        path: "{{ app_dir }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - certs
+        - auth
+
+    - name: Copiar contenido web
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app-podman/index.html"
+        dest: "{{ app_dir }}/index.html"
+        mode: "0644"
+
+    - name: Copiar configuracion de autenticacion (.htaccess)
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app-podman/.htaccess"
+        dest: "{{ app_dir }}/.htaccess"
+        mode: "0644"
+
+    - name: Copiar el Containerfile
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app-podman/Containerfile"
+        dest: "{{ app_dir }}/Containerfile"
+        mode: "0644"
+
+    - name: Generar clave privada para el certificado
+      community.crypto.openssl_privatekey:
+        path: "{{ app_dir }}/certs/server.key"
+
+    - name: Generar CSR
+      community.crypto.openssl_csr:
+        path: "{{ app_dir }}/certs/server.csr"
+        privatekey_path: "{{ app_dir }}/certs/server.key"
+        common_name: casopractico2.local
+
+    - name: Generar certificado x.509 autofirmado
+      community.crypto.x509_certificate:
+        path: "{{ app_dir }}/certs/server.crt"
+        privatekey_path: "{{ app_dir }}/certs/server.key"
+        csr_path: "{{ app_dir }}/certs/server.csr"
+        provider: selfsigned
+
+    - name: Generar credenciales de autenticacion basica (usuario admin)
+      community.general.htpasswd:
+        path: "{{ app_dir }}/auth/.htpasswd"
+        name: admin
+        password: "12345678"
+        crypt_scheme: apr_md5_crypt
+        mode: "0644"
+
+    - name: Construir la imagen de la App A
+      containers.podman.podman_image:
+        name: appa-podman
+        tag: casopractico2
+        path: "{{ app_dir }}"
+        force: true
+
+    - name: Autenticarse en el Azure Container Registry
+      containers.podman.podman_login:
+        username: "{{ acr_admin_username }}"
+        password: "{{ acr_admin_password }}"
+        registry: "{{ acr_login_server }}"
+
+    - name: Etiquetar y subir la imagen al ACR
+      containers.podman.podman_image:
+        name: "{{ image_local }}"
+        push: true
+        push_args:
+          dest: "{{ image_remote }}"
+
+    - name: Crear y arrancar el contenedor de la App A
+      containers.podman.podman_container:
+        name: casopractico2-web
+        image: "{{ image_local }}"
+        state: started
+        ports:
+          - "443:443"
+        restart_policy: always
+
+    - name: Generar unidad systemd para el contenedor
+      containers.podman.podman_generate_systemd:
+        name: casopractico2-web
+        dest: /etc/systemd/system/
+        new: true
+
+    - name: Recargar systemd y habilitar el servicio (persistente a reinicios)
+      ansible.builtin.systemd:
+        daemon_reload: true
+        name: container-casopractico2-web.service
+        enabled: true
+        state: started
