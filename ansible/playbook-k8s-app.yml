@@ -1,0 +1,106 @@
+---
+- name: Configurar AKS y desplegar App B con almacenamiento persistente
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - group_vars/all.yml
+  vars:
+    kubeconfig_path: "{{ playbook_dir }}/kubeconfig-casopractico2"
+
+  tasks:
+    - name: Obtener credenciales del cluster AKS
+      ansible.builtin.command: >
+        az aks get-credentials
+        --resource-group {{ resource_group_name }}
+        --name {{ aks_name }}
+        --file {{ kubeconfig_path }}
+        --overwrite-existing
+      changed_when: false
+      # Excepcion justificada: no existe modulo nativo de Ansible para
+      # "az aks get-credentials"; se documenta como caso permitido de 'command'.
+
+    - name: Crear namespace de la aplicacion
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: casopractico2
+
+    - name: Construir el dockerconfigjson para el imagePullSecret
+      ansible.builtin.set_fact:
+        dockerconfigjson: >-
+          {{ {
+            "auths": {
+              acr_login_server: {
+                "username": acr_admin_username,
+                "password": acr_admin_password,
+                "auth": (acr_admin_username + ':' + acr_admin_password) | b64encode
+              }
+            }
+          } | to_json | b64encode }}
+
+    - name: Crear el Secret de autenticacion contra el ACR (imagePullSecret)
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: kubernetes.io/dockerconfigjson
+          metadata:
+            name: acr-auth
+            namespace: casopractico2
+          data:
+            .dockerconfigjson: "{{ dockerconfigjson }}"
+
+    - name: Crear el PersistentVolumeClaim (StorageClass managed-csi)
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: appb-pvc
+            namespace: casopractico2
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            storageClassName: managed-csi
+            resources:
+              requests:
+                storage: 1Gi
+
+    - name: Desplegar la App B (Deployment + Service) desde plantilla
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition: "{{ lookup('template', 'templates/deployment-appb.yml.j2') }}"
+
+    - name: Esperar a que el pod de la App B este listo
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Pod
+        namespace: casopractico2
+        label_selectors:
+          - app=appb
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_timeout: 180
+
+    - name: Obtener la IP publica del Service (puede tardar unos minutos en asignarse)
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        kind: Service
+        namespace: casopractico2
+        name: appb-service
+      register: appb_service_info
+
+    - name: Mostrar la URL de acceso a la App B
+      ansible.builtin.debug:
+        msg: "App B disponible en: http://{{ appb_service_info.resources[0].status.loadBalancer.ingress[0].ip | default('IP aun no asignada, ejecuta kubectl get svc -n casopractico2') }}/"

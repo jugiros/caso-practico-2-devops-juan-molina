@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appb-deployment
+  namespace: casopractico2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appb
+  template:
+    metadata:
+      labels:
+        app: appb
+    spec:
+      imagePullSecrets:
+        - name: acr-auth
+      containers:
+        - name: appb
+          image: "{{ acr_login_server }}/appb/webserver-k8s:casopractico2"
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_PATH
+              value: /data/visits.db
+          volumeMounts:
+            - name: appb-storage
+              mountPath: /data
+      volumes:
+        - name: appb-storage
+          persistentVolumeClaim:
+            claimName: appb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appb-service
+  namespace: casopractico2
+spec:
+  type: LoadBalancer
+  selector:
+    app: appb
+  ports:
+    - port: 80
+      targetPort: 5000

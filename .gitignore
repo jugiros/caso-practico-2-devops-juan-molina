@@ -9,3 +9,4 @@ ansible/group_vars/all.yml
 terraform/tfplan
 app-podman/certs/
 app-podman/auth/
+ansible/kubeconfig-casopractico2
