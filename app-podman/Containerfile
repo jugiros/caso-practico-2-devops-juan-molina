@@ -1,0 +1,22 @@
+FROM docker.io/httpd:latest
+
+# Habilitar los modulos necesarios: SSL y autenticacion basica
+RUN sed -i \
+    -e 's/#LoadModule ssl_module modules\/mod_ssl.so/LoadModule ssl_module modules\/mod_ssl.so/' \
+    -e 's/#LoadModule socache_shmcb_module modules\/mod_socache_shmcb.so/LoadModule socache_shmcb_module modules\/mod_socache_shmcb.so/' \
+    -e 's/#Include conf\/extra\/httpd-ssl.conf/Include conf\/extra\/httpd-ssl.conf/' \
+    -e 's/#LoadModule authn_file_module modules\/mod_authn_file.so/LoadModule authn_file_module modules\/mod_authn_file.so/' \
+    -e 's/#LoadModule auth_basic_module modules\/mod_auth_basic.so/LoadModule auth_basic_module modules\/mod_auth_basic.so/' \
+    -e 's/#LoadModule authz_user_module modules\/mod_authz_user.so/LoadModule authz_user_module modules\/mod_authz_user.so/' \
+    -e 's/AllowOverride None/AllowOverride All/' \
+    /usr/local/apache2/conf/httpd.conf
+
+# Contenido, certificado autofirmado y credenciales (generados antes del build)
+COPY index.html /usr/local/apache2/htdocs/index.html
+COPY .htaccess /usr/local/apache2/htdocs/.htaccess
+COPY certs/server.crt /usr/local/apache2/conf/server.crt
+COPY certs/server.key /usr/local/apache2/conf/server.key
+COPY auth/.htpasswd /usr/local/apache2/conf/.htpasswd
+
+EXPOSE 443
+CMD ["httpd-foreground"]

@@ -7,3 +7,5 @@ __pycache__/
 *.retry
 ansible/group_vars/all.yml
 terraform/tfplan
+app-podman/certs/
+app-podman/auth/

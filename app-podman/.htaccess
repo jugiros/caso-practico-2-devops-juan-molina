@@ -1,0 +1,4 @@
+AuthType Basic
+AuthName "Caso Practico 2 - Acceso Restringido"
+AuthUserFile "/usr/local/apache2/conf/.htpasswd"
+Require valid-user
