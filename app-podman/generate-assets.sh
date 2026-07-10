@@ -12,7 +12,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout certs/server.key -out certs/server.crt \
   -subj "/C=EC/ST=Pichincha/L=Quito/O=UNIR/OU=CasoPractico2/CN=casopractico2.local"
 
-echo "== Generando credenciales de autenticacion basica (usuario: cp2user) =="
-podman run --rm docker.io/httpd:latest htpasswd -Bbn cp2user "CasoPractico2#2026" > auth/.htpasswd
+echo "== Generando credenciales de autenticacion basica (usuario: admin) =="
+podman run --rm docker.io/httpd:latest htpasswd -bn admin "12345678" > auth/.htpasswd
 
 echo "Listo. Archivos generados en certs/ y auth/ (no versionados)."
